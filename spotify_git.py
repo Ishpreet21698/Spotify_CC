@@ -1,15 +1,10 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from fastapi import FastAPI
-from pydantic import BaseModel
-import uvicorn
 import pickle
 
 from scipy.spatial import distance
 from sklearn.metrics import r2_score
-from openpyxl.workbook import Workbook
+#from openpyxl.workbook import Workbook
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
@@ -17,7 +12,7 @@ import streamlit as st
 import streamlit.components.v1 as componnents
 
 list1=['year', 'acousticness', 'duration_ms','explicit', 'loudness', 'tempo','popularity']
-df=pd.read_csv('C:/Users/ASUS/Desktop/data-science/notebooks/final_spotify.csv',usecols=list1,header=0)
+df=pd.read_csv('final_spotify.csv',usecols=list1,header=0)
 #df=pd.read_csv('C:/Users/ASUS/Desktop/data-science/notebooks/final_spotify.csv',header=0)
 #print(df.columns)
 df['loudness'] = df['loudness'].abs()
@@ -36,7 +31,7 @@ score_linreg1=r2_score(y_test,y_pred_linreg1)
 print("Accuracy of Linear Regression:",score_linreg1)
 
 #####################################Recommendations####################################################
-dataf=pd.read_csv('C:/Users/ASUS/Desktop/data-science/notebooks/recommendations.csv',header=0)
+dataf=pd.read_csv('recommendations.csv',header=0)
 print(dataf.columns)
 #dataf.drop(columns=['id','release_date'],inplace=True)
 
@@ -112,12 +107,6 @@ def find_cos_dist(df, song, number, artist, st):
             artist = artist[:inm] + ' and' + artist[inm + 1:]
         st.subheader(song_names[p[i][1]] + ' - '+ artist)
 
-def hello():
-    print("hello world....")
-
-def hello1():
-    return 'Hello world!'
-
 def spotify_show():      ## UI for user input uses streamlit
     st.set_page_config(layout="wide")
     st.title("Spotify - Dashboard, Prediction and Song Recommendation")
@@ -125,7 +114,6 @@ def spotify_show():      ## UI for user input uses streamlit
     # url='https://datastudio.google.com/reporting/56646c03-a0f8-41f2-99b7-f253078b0faf'
     componnents.iframe("https://datastudio.google.com/embed/reporting/56646c03-a0f8-41f2-99b7-f253078b0faf/page/AUKyB",height=600,width=1000)
 
-    @st.cache(allow_output_mutation=True)
     def get_feedback():
         return []
 
@@ -162,11 +150,8 @@ def spotify_show():      ## UI for user input uses streamlit
     song_name = st.text_input("Enter the name of the song you like")
     no_of_recom = st.slider("The number of recommendations you want", 1, 20)
     tup, s, ar = find_song(song_name, dataf)
-    #st.success(type(tup))
     st.subheader(f'Closest songs to-> {song_name}:')
-    #st.selectbox("",options=tup,key='ishu')
     xx=st.selectbox("",options=tup,key='ishu')
-    #xx=list(xx)
     find_cos_dist(dataf,s[xx[1]],no_of_recom,ar[xx[1]],st)
 
 
