@@ -1,15 +1,22 @@
 import pandas as pd
 import numpy as np
 import pickle
+
+from oauth2client.service_account import ServiceAccountCredentials
 from scipy.spatial import distance
-#from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
-from openpyxl.workbook import Workbook
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 import streamlit as st
 import streamlit.components.v1 as componnents
+import gspread
+
+scope = ['https://spreadsheets.google.com/feeds',
+         'https://www.googleapis.com/auth/drive']
+credentials = ServiceAccountCredentials.from_json_keyfile_name(
+    'jsonFileFromGoogle.json', scope)
+gc = gspread.authorize(credentials)
+sheet=gc.open('Spotify DB').sheet1
 
 df=pd.read_csv('spotify_dataset_f.csv',header=0)
 X=df.drop(['popularity'],axis=1)
@@ -101,9 +108,6 @@ def spotify_show():      ## UI for user input uses streamlit
     componnents.iframe("https://datastudio.google.com/embed/reporting/56646c03-a0f8-41f2-99b7-f253078b0faf/page/AUKyB",
                        height=600, width=1000)
 
-    def get_feedback():
-        return []
-
     st.sidebar.header("Dear user, please give your valuable feedback:")
     name = st.sidebar.text_input("Name")
     dash = st.sidebar.slider("Rate the dashboard", 1, 10)
@@ -112,14 +116,11 @@ def spotify_show():      ## UI for user input uses streamlit
     recommend = st.sidebar.selectbox("Would you recommend this webapp to others?", ['Yes', 'No'])
     if st.sidebar.button("Submit"):
         if name != '' and name.isalpha():
-            get_feedback().append({"Name": name, "Dashboard Rating": dash, "Prediction satisfaction": pred,
-                                   "Recommendation satisfaction": recom, "Recommend others": recommend})
+            add = [name, dash, pred, recom, recommend]
+            sheet.append_row(add)
             st.sidebar.success(f'Thanks for visiting this webpage, {name} :)')
         else:
             st.sidebar.error('Please enter a valid name!')
-    ddff=pd.DataFrame(get_feedback())
-    ddff.to_excel("set_feedback.xlsx")
-    ddff.to_csv("set_feedback.csv")
 
     st.header("Prediction")
     year = st.slider("Year", min_value=1921, max_value=2020)
