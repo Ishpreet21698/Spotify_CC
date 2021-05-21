@@ -22,7 +22,7 @@ pickle.dump(clf,open('spotify.pkl','wb'))
 loaded_model = pickle.load(open('spotify.pkl', 'rb'))
 
 #####################################Recommendations####################################################
-dataf=pd.read_csv('C:/Users/ASUS/Desktop/data-science/notebooks/recommendations.csv',header=0)
+dataf=pd.read_csv('recommendations.csv',header=0)
 print(dataf.columns)
 x=dataf[dataf.drop(columns=['artists','name']).columns].values
 scaler =StandardScaler().fit(x)
