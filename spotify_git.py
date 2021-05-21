@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 import streamlit as st
 import streamlit.components.v1 as componnents
 import gspread
+import re
 
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
@@ -110,12 +111,13 @@ def spotify_show():      ## UI for user input uses streamlit
 
     st.sidebar.header("Dear user, please give your valuable feedback:")
     name = st.sidebar.text_input("Name")
+    validate = re.fullmatch('[A-Za-z]{2,25}( [A-Za-z]{2,25})*', name)
     dash = st.sidebar.slider("Rate the dashboard", 1, 10)
     pred = st.sidebar.selectbox("Are you satisfied with the prediction results?", ['Yes', 'No'])
     recom = st.sidebar.radio("Are you satisfied with the song recommendations?", ['Yes', 'No'])
     recommend = st.sidebar.selectbox("Would you recommend this webapp to others?", ['Yes', 'No'])
     if st.sidebar.button("Submit"):
-        if name != '' and name.isalpha():
+        if validate:
             add = [name, dash, pred, recom, recommend]
             sheet.append_row(add)
             st.sidebar.success(f'Thanks for visiting this webpage, {name} :)')
