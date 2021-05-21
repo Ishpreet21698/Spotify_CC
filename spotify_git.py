@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 import pickle
-
 from scipy.spatial import distance
+#from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score
 from openpyxl.workbook import Workbook
 from sklearn.model_selection import train_test_split
@@ -11,31 +11,20 @@ from sklearn.preprocessing import StandardScaler
 import streamlit as st
 import streamlit.components.v1 as componnents
 
-list1=['year', 'acousticness', 'duration_ms','explicit', 'loudness', 'tempo','popularity']
-df=pd.read_csv('final_spotify.csv',usecols=list1,header=0)
-#df=pd.read_csv('C:/Users/ASUS/Desktop/data-science/notebooks/final_spotify.csv',header=0)
-#print(df.columns)
-df['loudness'] = df['loudness'].abs()
-df['duration']=df['duration_ms']/1000
-X = df.drop(['popularity','duration_ms'], axis=1)
-#X = df.drop(['popularity','id','name','artists_upd','release_date'], axis = 1)
-y = df["popularity"]
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 1)
+df=pd.read_csv('spotify_dataset_f.csv',header=0)
+X=df.drop(['popularity'],axis=1)
+y=df['popularity']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-linreg1 = LinearRegression()
-linreg1.fit(X_train,y_train)
-pickle.dump(linreg1,open('model_spotify.pkl','wb'))
-loaded_model = pickle.load(open('model_spotify.pkl', 'rb'))
-y_pred_linreg1=linreg1.predict(X_test)
-score_linreg1=r2_score(y_test,y_pred_linreg1)
-print("Accuracy of Linear Regression:",score_linreg1)
+clf = LinearRegression()
+clf.fit(X_train, y_train)
+pickle.dump(clf,open('spotify.pkl','wb'))
+loaded_model = pickle.load(open('spotify.pkl', 'rb'))
 
 #####################################Recommendations####################################################
-dataf=pd.read_csv('recommendations.csv',header=0)
+dataf=pd.read_csv('C:/Users/ASUS/Desktop/data-science/notebooks/recommendations.csv',header=0)
 print(dataf.columns)
-#dataf.drop(columns=['id','release_date'],inplace=True)
-
-x=dataf[dataf.drop(columns=['artists','name']).columns].values #numpy array
+x=dataf[dataf.drop(columns=['artists','name']).columns].values
 scaler =StandardScaler().fit(x)
 X_scaled = scaler.transform(x)
 dataf[dataf.drop(columns=['artists','name']).columns]=X_scaled
@@ -87,7 +76,6 @@ def find_cos_dist(df, song, number, artist, st):
     if ',' in artist:
         inm = artist.rfind(",")
         artist = artist[:inm] + ' and' + artist[inm + 1:]
-    st.header('The song closest to your search '+ song +' by '+artist+ ' is :')
 
     song_names = df['name'].values
     p = []
@@ -97,7 +85,7 @@ def find_cos_dist(df, song, number, artist, st):
         p.append([distance.cosine(x, i), count])
         count += 1
     p.sort()  # list of all cosine distances with row count
-
+    st.header('The songs closest to your search ' + song + ' by ' + artist + ' :')
     for i in range(1, number + 1):
         artists = dataf['artists'].values
         artist = artists[p[i][1]]
@@ -110,49 +98,64 @@ def find_cos_dist(df, song, number, artist, st):
 def spotify_show():      ## UI for user input uses streamlit
     st.set_page_config(layout="wide")
     st.title("Spotify - Dashboard, Prediction and Song Recommendation")
-    # https://datastudio.google.com/embed/reporting/56646c03-a0f8-41f2-99b7-f253078b0faf/page/AUKyB
-    # url='https://datastudio.google.com/reporting/56646c03-a0f8-41f2-99b7-f253078b0faf'
-    componnents.iframe("https://datastudio.google.com/embed/reporting/56646c03-a0f8-41f2-99b7-f253078b0faf/page/AUKyB",height=600,width=1000)
+    componnents.iframe("https://datastudio.google.com/embed/reporting/56646c03-a0f8-41f2-99b7-f253078b0faf/page/AUKyB",
+                       height=600, width=1000)
 
     def get_feedback():
         return []
 
     st.sidebar.header("Dear user, please give your valuable feedback:")
     name = st.sidebar.text_input("Name")
-    dash=st.sidebar.slider("Rate the dashboard",1 , 100)
-    pred=st.sidebar.selectbox("Are you satisfied with the prediction results?",['Yes','No'])
-    recom=st.sidebar.radio("Are you satisfied with the song recommendations?",['Yes','No'])
-    recommend = st.sidebar.selectbox("Would you recommend this webapp to others?",['Yes','No'])
+    dash = st.sidebar.slider("Rate the dashboard", 1, 10)
+    pred = st.sidebar.selectbox("Are you satisfied with the prediction results?", ['Yes', 'No'])
+    recom = st.sidebar.radio("Are you satisfied with the song recommendations?", ['Yes', 'No'])
+    recommend = st.sidebar.selectbox("Would you recommend this webapp to others?", ['Yes', 'No'])
     if st.sidebar.button("Submit"):
-        get_feedback().append({"Name": name, "Dashboard Rating": dash, "Prediction satisfaction": pred, "Recommendation satisfaction": recom, "Recommend others": recommend})
-        st.sidebar.success(f'Thanks for visiting this webpage, {name} :)')
+        if name != '' and name.isalpha():
+            get_feedback().append({"Name": name, "Dashboard Rating": dash, "Prediction satisfaction": pred,
+                                   "Recommendation satisfaction": recom, "Recommend others": recommend})
+            st.sidebar.success(f'Thanks for visiting this webpage, {name} :)')
+        else:
+            st.sidebar.error('Please enter a valid name!')
     ddff=pd.DataFrame(get_feedback())
     ddff.to_excel("set_feedback.xlsx")
     ddff.to_csv("set_feedback.csv")
 
     st.header("Prediction")
     year = st.slider("Year", min_value=1921, max_value=2020)
-    acousticness = st.slider("Acousticness", min_value=0.0, max_value=1.0)
-    duration = st.number_input("Song Duration", min_value=3.0, max_value=6000.0)
-    explicit = st.selectbox("Explicit", [0, 1])
-    st.text("0 - Non Explicit content, 1 - Explicit content")
-    loudness = st.number_input("Loudness", min_value=-100.0, max_value=100.0)
+    st.text("Year in which the song was released")
+    danceability = st.slider("Danceability", min_value=0.0, max_value=1.0)
+    st.text('One a scale of 0-1, how much suitable the song is to dance')
+    energy = st.slider("Energy", min_value=0.0, max_value=1.0)
+    st.text('One a scale of 0-1, what is the intensity level of the song')
+    artists_popularities = st.slider("Artist Popularity", min_value=0.0, max_value=100.0)
+    st.text('One a scale of 0-1, what is the popularity level of the artist')
+    loudness = st.number_input("Loudness", min_value=-100.0, max_value=50.0)
+    st.text('One a scale of -100 to 50, what is the loudness level of the song')
     tempo = st.number_input("Tempo", min_value=0.0, max_value=250.0)
+    st.text('One a scale of 0-250, what is the tempo(in beats per minute) of the song')
     predict = st.button("Predict Popularity")
 
     if predict:
-        test_data = np.array([[year, acousticness, duration, explicit, loudness, tempo]])
+        test_data = np.array([[year, danceability, energy, loudness, tempo, artists_popularities]])
         output = loaded_model.predict(test_data)[0]
-        st.subheader('Popularity score of the song(out of 100)')
+        st.subheader('Popularity score of the song (out of 100):')
         st.success(output)
 
     st.header("Recommendation")
     song_name = st.text_input("Enter the name of the song you like")
     no_of_recom = st.slider("The number of recommendations you want", 1, 20)
     tup, s, ar = find_song(song_name, dataf)
-    st.subheader(f'Closest songs to-> {song_name}:')
-    xx=st.selectbox("",options=tup,key='ishu')
-    find_cos_dist(dataf,s[xx[1]],no_of_recom,ar[xx[1]],st)
+    if song_name:
+        st.subheader(f'Closest songs to-> {song_name}:')
+        st.text('You can make the song choice from the below dropdown')
+        xx = st.selectbox("", options=tup, key='ishu', )
+        if xx:
+            find_cos_dist(dataf, s[xx[1]], no_of_recom, ar[xx[1]], st)
+
+
+spotify_show()
+
 
 
 
